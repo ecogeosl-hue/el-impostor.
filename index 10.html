@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>EL IMPOSTOR – ECOGEO</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #1c1410; --teal: #5ecfbe; --cream: #f5f0e8; --red: #d42b2b; }
+    body {
+      background: var(--bg); min-height: 100dvh;
+      font-family: 'Inter', sans-serif;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      overflow: hidden; padding: 24px;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(94,207,190,0.08) 0%, transparent 60%);
+      pointer-events: none; z-index: 0;
+    }
+
+    /* HEADER */
+    .header { text-align: center; margin-bottom: 28px; animation: fadeDown 0.7s ease both; z-index: 1; }
+    .logo-brand { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 6px; color: white; }
+    .logo-title { font-family: 'Bebas Neue', sans-serif; font-size: 48px; letter-spacing: 4px; color: var(--cream); line-height: 1; }
+    .logo-sub { font-size: 10px; letter-spacing: 4px; color: var(--teal); margin-top: 4px; text-transform: uppercase; }
+
+    /* CARD */
+    .card-wrap { z-index: 1; display: flex; flex-direction: column; align-items: center; }
+    .card-container { perspective: 1000px; width: min(80vw, 300px); aspect-ratio: 3/4; cursor: pointer; animation: fadeUp 0.7s 0.2s ease both; }
+    .card-inner { width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 0.7s cubic-bezier(0.4,0,0.2,1); border-radius: 20px; }
+    .card-inner.flipped { transform: rotateY(180deg); }
+    .card-face { position: absolute; inset: 0; backface-visibility: hidden; border-radius: 20px; overflow: hidden; }
+    .card-back {
+      background: linear-gradient(135deg, #2a1f1a 0%, #1c1410 100%);
+      border: 2px solid rgba(94,207,190,0.25);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+    }
+    .card-back::after { content: ''; position: absolute; inset: 0; border-radius: 18px; border: 2px solid var(--teal); animation: borderPulse 2s infinite; }
+    .card-back-title { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 4px; color: var(--teal); opacity: 0.8; }
+    .tap-hint { font-size: 11px; letter-spacing: 3px; color: rgba(255,255,255,0.3); text-transform: uppercase; animation: pulse 2s infinite; }
+    .card-front { transform: rotateY(180deg); }
+    .card-front img { width: 100%; height: 100%; object-fit: cover; border-radius: 20px; }
+    .role-label { margin-top: 14px; font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 3px; text-align: center; opacity: 0; transform: translateY(8px); transition: all 0.4s 0.2s; z-index: 1; }
+    .role-label.show { opacity: 1; transform: translateY(0); }
+    .role-label.civil { color: var(--teal); }
+    .role-label.impostor { color: var(--red); }
+    .card-hint { margin-top: 10px; font-size: 11px; letter-spacing: 2px; color: rgba(255,255,255,0.25); text-transform: uppercase; text-align: center; opacity: 0; transition: opacity 0.4s 0.4s; z-index: 1; }
+    .card-hint.show { opacity: 1; }
+
+    /* NUEVA PARTIDA BUTTON */
+    #newGameBtn {
+      display: none;
+      margin-top: 18px;
+      padding: 14px 32px;
+      border-radius: 50px;
+      border: none;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 20px;
+      letter-spacing: 3px;
+      cursor: pointer;
+      background: var(--teal);
+      color: #1c1410;
+      box-shadow: 0 4px 24px rgba(94,207,190,0.35);
+      z-index: 1;
+      transition: transform 0.15s, opacity 0.3s;
+    }
+    #newGameBtn:active { transform: scale(0.97); }
+    #newGameBtn.show { display: block; }
+    #newGameBtn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+    #readyCount {
+      display: none;
+      margin-top: 8px;
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: rgba(255,255,255,0.35);
+      text-transform: uppercase;
+      z-index: 1;
+    }
+    #readyCount.show { display: block; }
+
+    /* WAITING SCREEN */
+    #screen-wait { display: none; flex-direction: column; align-items: center; justify-content: center; position: fixed; inset: 0; z-index: 20; background: var(--bg); padding: 24px; }
+    #screen-wait.active { display: flex; }
+    .wait-title { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 3px; color: white; margin-bottom: 4px; }
+    .wait-sub { font-size: 12px; letter-spacing: 3px; color: rgba(255,255,255,0.4); text-transform: uppercase; margin-bottom: 20px; }
+    .count-big { font-family: 'Bebas Neue', sans-serif; font-size: 80px; color: var(--teal); line-height: 1; }
+    .count-label { font-size: 11px; letter-spacing: 3px; color: rgba(255,255,255,0.35); text-transform: uppercase; margin-bottom: 20px; }
+    .players-grid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 340px; margin-bottom: 24px; }
+    .player-chip { padding: 7px 14px; border-radius: 50px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); color: white; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; animation: popIn 0.3s ease both; }
+    .player-chip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--teal); animation: pulse 2s infinite; }
+    .btn-row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-bottom: 8px; }
+    .btn { padding: 14px 32px; border-radius: 50px; border: none; font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 3px; cursor: pointer; transition: transform 0.15s, opacity 0.3s; min-width: 200px; }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-start { background: var(--teal); color: #1c1410; box-shadow: 0 4px 24px rgba(94,207,190,0.35); }
+    .btn-reset { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.15); }
+    .btn-reset:hover { background: rgba(212,43,43,0.2); color: var(--red); border-color: var(--red); }
+    .min-note { font-size: 11px; color: rgba(255,255,255,0.25); letter-spacing: 2px; text-transform: uppercase; }
+
+    /* NON-HOST WAIT */
+    #screen-nonhost { display: none; flex-direction: column; align-items: center; justify-content: center; position: fixed; inset: 0; z-index: 20; background: var(--bg); padding: 24px; }
+    #screen-nonhost.active { display: flex; }
+
+    /* ANIMATIONS */
+    @keyframes fadeDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+    @keyframes borderPulse { 0%,100% { opacity: 0.3; } 50% { opacity: 0.7; } }
+    @keyframes popIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="logo-brand">ECOGEO</div>
+    <div class="logo-title">EL IMPOSTOR</div>
+    <div class="logo-sub">¿Quién no pertenece?</div>
+  </div>
+
+  <div class="card-wrap">
+    <div class="card-container" onclick="handleCardTap()">
+      <div class="card-inner" id="cardInner">
+        <div class="card-face card-back">
+          <div class="card-back-title">TU CARTA</div>
+          <div class="tap-hint">TOCA PARA REVELAR</div>
+        </div>
+        <div class="card-face card-front">
+          <img id="cardImage" src="" alt="carta">
+        </div>
+      </div>
+    </div>
+    <div class="role-label" id="roleLabel"></div>
+    <div class="card-hint" id="cardHint"></div>
+    <button id="newGameBtn" onclick="voteNewGame()">🔄 NUEVA PARTIDA</button>
+    <div id="readyCount"></div>
+  </div>
+
+  <!-- ANFITRIÓN: sala de espera -->
+  <div id="screen-wait">
+    <div class="wait-title">SALA DE ESPERA</div>
+    <div class="wait-sub">Comparte el enlace con los jugadores</div>
+    <div class="count-big" id="waitCount">1</div>
+    <div class="count-label">JUGADORES CONECTADOS</div>
+    <div class="players-grid" id="playersList"></div>
+    <div class="btn-row">
+      <button class="btn btn-start" id="startBtn" onclick="startGame()" disabled>INICIAR JUEGO</button>
+      <button class="btn btn-reset" onclick="resetGame()">REINICIAR SALA</button>
+    </div>
+    <div class="min-note" id="minNote">Mínimo 2 jugadores</div>
+  </div>
+
+  <!-- NO ANFITRIÓN: espera inicio -->
+  <div id="screen-nonhost">
+    <div class="wait-title">ESPERANDO...</div>
+    <div class="wait-sub">El anfitrión iniciará el juego</div>
+    <div class="count-big" id="waitCountNH">1</div>
+    <div class="count-label">JUGADORES CONECTADOS</div>
+    <div class="players-grid" id="playersListNH"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, get, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const app = initializeApp({ databaseURL: "https://impostor-dd822-default-rtdb.europe-west1.firebasedatabase.app" });
+    const db = getDatabase(app);
+    const ROOM = 'room';
+
+    const CARDS = [
+  'data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSczMDAnIGhlaWdodD0nNDAwJyB2aWV3Qm94PScwIDAgMzAwIDQwMCc+CiAgPGRlZnM+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9J2cnIGN4PSc1MCUnIGN5PSczMCUnIHI9JzcwJSc+CiAgICAgIDxzdG9wIG9mZnNldD0nMCUnIHN0b3AtY29sb3I9JyM1ZWNmYmUnIHN0b3Atb3BhY2l0eT0nMC4xNScvPgogICAgICA8c3RvcCBvZmZzZXQ9JzEwMCUnIHN0b3AtY29sb3I9JyMwZjM0NjAnLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSczMDAnIGhlaWdodD0nNDAwJyBmaWxsPSd1cmwoI2cpJyByeD0nMjAnLz4KICA8cmVjdCB4PSc4JyB5PSc4JyB3aWR0aD0nMjg0JyBoZWlnaHQ9JzM4NCcgZmlsbD0nbm9uZScgc3Ryb2tlPScjNWVjZmJlJyBzdHJva2Utd2lkdGg9JzInIHJ4PScxNicgb3BhY2l0eT0nMC42Jy8+CiAgPHRleHQgeD0nMTUwJyB5PScxNjAnIGZvbnQtc2l6ZT0nODAnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGRvbWluYW50LWJhc2VsaW5lPSdtaWRkbGUnPvCfjLI8L3RleHQ+CiAgPHRleHQgeD0nMTUwJyB5PScyNzAnIGZvbnQtZmFtaWx5PSdBcmlhbCBCbGFjayxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIyJyBmb250LXdlaWdodD0nOTAwJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBmaWxsPScjNWVjZmJlJyBsZXR0ZXItc3BhY2luZz0nMyc+Qk9TUVVFPC90ZXh0PgogIDx0ZXh0IHg9JzE1MCcgeT0nMzEwJyBmb250LWZhbWlseT0nQXJpYWwsc2Fucy1zZXJpZicgZm9udC1zaXplPScxMScgdGV4dC1hbmNob3I9J21pZGRsZScgZmlsbD0ncmdiYSgyNTUsMjU1LDI1NSwwLjM1KScgbGV0dGVyLXNwYWNpbmc9JzQnPkVDT0dFTzwvdGV4dD4KPC9zdmc+',
+  'data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSczMDAnIGhlaWdodD0nNDAwJyB2aWV3Qm94PScwIDAgMzAwIDQwMCc+CiAgPGRlZnM+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9J2cnIGN4PSc1MCUnIGN5PSczMCUnIHI9JzcwJSc+CiAgICAgIDxzdG9wIG9mZnNldD0nMCUnIHN0b3AtY29sb3I9JyM1ZWNmYmUnIHN0b3Atb3BhY2l0eT0nMC4xNScvPgogICAgICA8c3RvcCBvZmZzZXQ9JzEwMCUnIHN0b3AtY29sb3I9JyMwZjM0NjAnLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSczMDAnIGhlaWdodD0nNDAwJyBmaWxsPSd1cmwoI2cpJyByeD0nMjAnLz4KICA8cmVjdCB4PSc4JyB5PSc4JyB3aWR0aD0nMjg0JyBoZWlnaHQ9JzM4NCcgZmlsbD0nbm9uZScgc3Ryb2tlPScjNWVjZmJlJyBzdHJva2Utd2lkdGg9JzInIHJ4PScxNicgb3BhY2l0eT0nMC42Jy8+CiAgPHRleHQgeD0nMTUwJyB5PScxNjAnIGZvbnQtc2l6ZT0nODAnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGRvbWluYW50LWJhc2VsaW5lPSdtaWRkbGUnPvCfjIo8L3RleHQ+CiAgPHRleHQgeD0nMTUwJyB5PScyNzAnIGZvbnQtZmFtaWx5PSdBcmlhbCBCbGFjayxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIyJyBmb250LXdlaWdodD0nOTAwJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBmaWxsPScjNWVjZmJlJyBsZXR0ZXItc3BhY2luZz0nMyc+T0NFQU5PPC90ZXh0PgogIDx0ZXh0IHg9JzE1MCcgeT0nMzEwJyBmb250LWZhbWlseT0nQXJpYWwsc2Fucy1zZXJpZicgZm9udC1zaXplPScxMScgdGV4dC1hbmNob3I9J21pZGRsZScgZmlsbD0ncmdiYSgyNTUsMjU1LDI1NSwwLjM1KScgbGV0dGVyLXNwYWNpbmc9JzQnPkVDT0dFTzwvdGV4dD4KPC9zdmc+',
+  'data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSczMDAnIGhlaWdodD0nNDAwJyB2aWV3Qm94PScwIDAgMzAwIDQwMCc+CiAgPGRlZnM+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9J2cnIGN4PSc1MCUnIGN5PSczMCUnIHI9JzcwJSc+CiAgICAgIDxzdG9wIG9mZnNldD0nMCUnIHN0b3AtY29sb3I9JyM1ZWNmYmUnIHN0b3Atb3BhY2l0eT0nMC4xNScvPgogICAgICA8c3RvcCBvZmZzZXQ9JzEwMCUnIHN0b3AtY29sb3I9JyMwZjM0NjAnLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSczMDAnIGhlaWdodD0nNDAwJyBmaWxsPSd1cmwoI2cpJyByeD0nMjAnLz4KICA8cmVjdCB4PSc4JyB5PSc4JyB3aWR0aD0nMjg0JyBoZWlnaHQ9JzM4NCcgZmlsbD0nbm9uZScgc3Ryb2tlPScjNWVjZmJlJyBzdHJva2Utd2lkdGg9JzInIHJ4PScxNicgb3BhY2l0eT0nMC42Jy8+CiAgPHRleHQgeD0nMTUwJyB5PScxNjAnIGZvbnQtc2l6ZT0nODAnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGRvbWluYW50LWJhc2VsaW5lPSdtaWRkbGUnPuKbsDwvdGV4dD4KICA8dGV4dCB4PScxNTAnIHk9JzI3MCcgZm9udC1mYW1pbHk9J0FyaWFsIEJsYWNrLHNhbnMtc2VyaWYnIGZvbnQtc2l6ZT0nMjInIGZvbnQtd2VpZ2h0PSc5MDAnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGZpbGw9JyM1ZWNmYmUnIGxldHRlci1zcGFjaW5nPSczJz5NT05UQU5BPC90ZXh0PgogIDx0ZXh0IHg9JzE1MCcgeT0nMzEwJyBmb250LWZhbWlseT0nQXJpYWwsc2Fucy1zZXJpZicgZm9udC1zaXplPScxMScgdGV4dC1hbmNob3I9J21pZGRsZScgZmlsbD0ncmdiYSgyNTUsMjU1LDI1NSwwLjM1KScgbGV0dGVyLXNwYWNpbmc9JzQnPkVDT0dFTzwvdGV4dD4KPC9zdmc+',
+  'data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSczMDAnIGhlaWdodD0nNDAwJyB2aWV3Qm94PScwIDAgMzAwIDQwMCc+CiAgPGRlZnM+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9J2cnIGN4PSc1MCUnIGN5PSczMCUnIHI9JzcwJSc+CiAgICAgIDxzdG9wIG9mZnNldD0nMCUnIHN0b3AtY29sb3I9JyM1ZWNmYmUnIHN0b3Atb3BhY2l0eT0nMC4xNScvPgogICAgICA8c3RvcCBvZmZzZXQ9JzEwMCUnIHN0b3AtY29sb3I9JyMwZjM0NjAnLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSczMDAnIGhlaWdodD0nNDAwJyBmaWxsPSd1cmwoI2cpJyByeD0nMjAnLz4KICA8cmVjdCB4PSc4JyB5PSc4JyB3aWR0aD0nMjg0JyBoZWlnaHQ9JzM4NCcgZmlsbD0nbm9uZScgc3Ryb2tlPScjNWVjZmJlJyBzdHJva2Utd2lkdGg9JzInIHJ4PScxNicgb3BhY2l0eT0nMC42Jy8+CiAgPHRleHQgeD0nMTUwJyB5PScxNjAnIGZvbnQtc2l6ZT0nODAnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGRvbWluYW50LWJhc2VsaW5lPSdtaWRkbGUnPvCfj5w8L3RleHQ+CiAgPHRleHQgeD0nMTUwJyB5PScyNzAnIGZvbnQtZmFtaWx5PSdBcmlhbCBCbGFjayxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIyJyBmb250LXdlaWdodD0nOTAwJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBmaWxsPScjNWVjZmJlJyBsZXR0ZXItc3BhY2luZz0nMyc+REVTSUVSVE88L3RleHQ+CiAgPHRleHQgeD0nMTUwJyB5PSczMTAnIGZvbnQtZmFtaWx5PSdBcmlhbCxzYW5zLXNlcmlmJyBmb250LXNpemU9JzExJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBmaWxsPSdyZ2JhKDI1NSwyNTUsMjU1LDAuMzUpJyBsZXR0ZXItc3BhY2luZz0nNCc+RUNPR0VPPC90ZXh0Pgo8L3N2Zz4=',
+  'data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSczMDAnIGhlaWdodD0nNDAwJyB2aWV3Qm94PScwIDAgMzAwIDQwMCc+CiAgPGRlZnM+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9J2cnIGN4PSc1MCUnIGN5PSczMCUnIHI9JzcwJSc+CiAgICAgIDxzdG9wIG9mZnNldD0nMCUnIHN0b3AtY29sb3I9JyM1ZWNmYmUnIHN0b3Atb3BhY2l0eT0nMC4xNScvPgogICAgICA8c3RvcCBvZmZzZXQ9JzEwMCUnIHN0b3AtY29sb3I9JyMwZjM0NjAnLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSczMDAnIGhlaWdodD0nNDAwJyBmaWxsPSd1cmwoI2cpJyByeD0nMjAnLz4KICA8cmVjdCB4PSc4JyB5PSc4JyB3aWR0aD0nMjg0JyBoZWlnaHQ9JzM4NCcgZmlsbD0nbm9uZScgc3Ryb2tlPScjNWVjZmJlJyBzdHJva2Utd2lkdGg9JzInIHJ4PScxNicgb3BhY2l0eT0nMC42Jy8+CiAgPHRleHQgeD0nMTUwJyB5PScxNjAnIGZvbnQtc2l6ZT0nODAnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGRvbWluYW50LWJhc2VsaW5lPSdtaWRkbGUnPvCfj5k8L3RleHQ+CiAgPHRleHQgeD0nMTUwJyB5PScyNzAnIGZvbnQtZmFtaWx5PSdBcmlhbCBCbGFjayxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIyJyBmb250LXdlaWdodD0nOTAwJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBmaWxsPScjNWVjZmJlJyBsZXR0ZXItc3BhY2luZz0nMyc+Q0lVREFEPC90ZXh0PgogIDx0ZXh0IHg9JzE1MCcgeT0nMzEwJyBmb250LWZhbWlseT0nQXJpYWwsc2Fucy1zZXJpZicgZm9udC1zaXplPScxMScgdGV4dC1hbmNob3I9J21pZGRsZScgZmlsbD0ncmdiYSgyNTUsMjU1LDI1NSwwLjM1KScgbGV0dGVyLXNwYWNpbmc9JzQnPkVDT0dFTzwvdGV4dD4KPC9zdmc+',
+  'data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSczMDAnIGhlaWdodD0nNDAwJyB2aWV3Qm94PScwIDAgMzAwIDQwMCc+CiAgPGRlZnM+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9J2cnIGN4PSc1MCUnIGN5PSczMCUnIHI9JzcwJSc+CiAgICAgIDxzdG9wIG9mZnNldD0nMCUnIHN0b3AtY29sb3I9JyM1ZWNmYmUnIHN0b3Atb3BhY2l0eT0nMC4xNScvPgogICAgICA8c3RvcCBvZmZzZXQ9JzEwMCUnIHN0b3AtY29sb3I9JyMwZjM0NjAnLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSczMDAnIGhlaWdodD0nNDAwJyBmaWxsPSd1cmwoI2cpJyByeD0nMjAnLz4KICA8cmVjdCB4PSc4JyB5PSc4JyB3aWR0aD0nMjg0JyBoZWlnaHQ9JzM4NCcgZmlsbD0nbm9uZScgc3Ryb2tlPScjNWVjZmJlJyBzdHJva2Utd2lkdGg9JzInIHJ4PScxNicgb3BhY2l0eT0nMC42Jy8+CiAgPHRleHQgeD0nMTUwJyB5PScxNjAnIGZvbnQtc2l6ZT0nODAnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGRvbWluYW50LWJhc2VsaW5lPSdtaWRkbGUnPvCfp4o8L3RleHQ+CiAgPHRleHQgeD0nMTUwJyB5PScyNzAnIGZvbnQtZmFtaWx5PSdBcmlhbCBCbGFjayxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIyJyBmb250LXdlaWdodD0nOTAwJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBmaWxsPScjNWVjZmJlJyBsZXR0ZXItc3BhY2luZz0nMyc+R0xBQ0lBUjwvdGV4dD4KICA8dGV4dCB4PScxNTAnIHk9JzMxMCcgZm9udC1mYW1pbHk9J0FyaWFsLHNhbnMtc2VyaWYnIGZvbnQtc2l6ZT0nMTEnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGZpbGw9J3JnYmEoMjU1LDI1NSwyNTUsMC4zNSknIGxldHRlci1zcGFjaW5nPSc0Jz5FQ09HRU88L3RleHQ+Cjwvc3ZnPg==',
+  'data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSczMDAnIGhlaWdodD0nNDAwJyB2aWV3Qm94PScwIDAgMzAwIDQwMCc+CiAgPGRlZnM+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9J2cnIGN4PSc1MCUnIGN5PSczMCUnIHI9JzcwJSc+CiAgICAgIDxzdG9wIG9mZnNldD0nMCUnIHN0b3AtY29sb3I9JyM1ZWNmYmUnIHN0b3Atb3BhY2l0eT0nMC4xNScvPgogICAgICA8c3RvcCBvZmZzZXQ9JzEwMCUnIHN0b3AtY29sb3I9JyMwZjM0NjAnLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSczMDAnIGhlaWdodD0nNDAwJyBmaWxsPSd1cmwoI2cpJyByeD0nMjAnLz4KICA8cmVjdCB4PSc4JyB5PSc4JyB3aWR0aD0nMjg0JyBoZWlnaHQ9JzM4NCcgZmlsbD0nbm9uZScgc3Ryb2tlPScjNWVjZmJlJyBzdHJva2Utd2lkdGg9JzInIHJ4PScxNicgb3BhY2l0eT0nMC42Jy8+CiAgPHRleHQgeD0nMTUwJyB5PScxNjAnIGZvbnQtc2l6ZT0nODAnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGRvbWluYW50LWJhc2VsaW5lPSdtaWRkbGUnPvCfjL48L3RleHQ+CiAgPHRleHQgeD0nMTUwJyB5PScyNzAnIGZvbnQtZmFtaWx5PSdBcmlhbCBCbGFjayxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIyJyBmb250LXdlaWdodD0nOTAwJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBmaWxsPScjNWVjZmJlJyBsZXR0ZXItc3BhY2luZz0nMyc+UFJBREVSQTwvdGV4dD4KICA8dGV4dCB4PScxNTAnIHk9JzMxMCcgZm9udC1mYW1pbHk9J0FyaWFsLHNhbnMtc2VyaWYnIGZvbnQtc2l6ZT0nMTEnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGZpbGw9J3JnYmEoMjU1LDI1NSwyNTUsMC4zNSknIGxldHRlci1zcGFjaW5nPSc0Jz5FQ09HRU88L3RleHQ+Cjwvc3ZnPg==',
+  'data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSczMDAnIGhlaWdodD0nNDAwJyB2aWV3Qm94PScwIDAgMzAwIDQwMCc+CiAgPGRlZnM+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9J2cnIGN4PSc1MCUnIGN5PSczMCUnIHI9JzcwJSc+CiAgICAgIDxzdG9wIG9mZnNldD0nMCUnIHN0b3AtY29sb3I9JyM1ZWNmYmUnIHN0b3Atb3BhY2l0eT0nMC4xNScvPgogICAgICA8c3RvcCBvZmZzZXQ9JzEwMCUnIHN0b3AtY29sb3I9JyMwZjM0NjAnLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSczMDAnIGhlaWdodD0nNDAwJyBmaWxsPSd1cmwoI2cpJyByeD0nMjAnLz4KICA8cmVjdCB4PSc4JyB5PSc4JyB3aWR0aD0nMjg0JyBoZWlnaHQ9JzM4NCcgZmlsbD0nbm9uZScgc3Ryb2tlPScjNWVjZmJlJyBzdHJva2Utd2lkdGg9JzInIHJ4PScxNicgb3BhY2l0eT0nMC42Jy8+CiAgPHRleHQgeD0nMTUwJyB5PScxNjAnIGZvbnQtc2l6ZT0nODAnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGRvbWluYW50LWJhc2VsaW5lPSdtaWRkbGUnPvCfkKA8L3RleHQ+CiAgPHRleHQgeD0nMTUwJyB5PScyNzAnIGZvbnQtZmFtaWx5PSdBcmlhbCBCbGFjayxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIyJyBmb250LXdlaWdodD0nOTAwJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBmaWxsPScjNWVjZmJlJyBsZXR0ZXItc3BhY2luZz0nMyc+QVJSRUNJRkU8L3RleHQ+CiAgPHRleHQgeD0nMTUwJyB5PSczMTAnIGZvbnQtZmFtaWx5PSdBcmlhbCxzYW5zLXNlcmlmJyBmb250LXNpemU9JzExJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBmaWxsPSdyZ2JhKDI1NSwyNTUsMjU1LDAuMzUpJyBsZXR0ZXItc3BhY2luZz0nNCc+RUNPR0VPPC90ZXh0Pgo8L3N2Zz4=',
+  'data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSczMDAnIGhlaWdodD0nNDAwJyB2aWV3Qm94PScwIDAgMzAwIDQwMCc+CiAgPGRlZnM+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9J2cnIGN4PSc1MCUnIGN5PSczMCUnIHI9JzcwJSc+CiAgICAgIDxzdG9wIG9mZnNldD0nMCUnIHN0b3AtY29sb3I9JyM1ZWNmYmUnIHN0b3Atb3BhY2l0eT0nMC4xNScvPgogICAgICA8c3RvcCBvZmZzZXQ9JzEwMCUnIHN0b3AtY29sb3I9JyMwZjM0NjAnLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSczMDAnIGhlaWdodD0nNDAwJyBmaWxsPSd1cmwoI2cpJyByeD0nMjAnLz4KICA8cmVjdCB4PSc4JyB5PSc4JyB3aWR0aD0nMjg0JyBoZWlnaHQ9JzM4NCcgZmlsbD0nbm9uZScgc3Ryb2tlPScjNWVjZmJlJyBzdHJva2Utd2lkdGg9JzInIHJ4PScxNicgb3BhY2l0eT0nMC42Jy8+CiAgPHRleHQgeD0nMTUwJyB5PScxNjAnIGZvbnQtc2l6ZT0nODAnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGRvbWluYW50LWJhc2VsaW5lPSdtaWRkbGUnPvCfjIs8L3RleHQ+CiAgPHRleHQgeD0nMTUwJyB5PScyNzAnIGZvbnQtZmFtaWx5PSdBcmlhbCBCbGFjayxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIyJyBmb250LXdlaWdodD0nOTAwJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBmaWxsPScjNWVjZmJlJyBsZXR0ZXItc3BhY2luZz0nMyc+Vk9MQ0FOPC90ZXh0PgogIDx0ZXh0IHg9JzE1MCcgeT0nMzEwJyBmb250LWZhbWlseT0nQXJpYWwsc2Fucy1zZXJpZicgZm9udC1zaXplPScxMScgdGV4dC1hbmNob3I9J21pZGRsZScgZmlsbD0ncmdiYSgyNTUsMjU1LDI1NSwwLjM1KScgbGV0dGVyLXNwYWNpbmc9JzQnPkVDT0dFTzwvdGV4dD4KPC9zdmc+',
+  'data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSczMDAnIGhlaWdodD0nNDAwJyB2aWV3Qm94PScwIDAgMzAwIDQwMCc+CiAgPGRlZnM+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9J2cnIGN4PSc1MCUnIGN5PSczMCUnIHI9JzcwJSc+CiAgICAgIDxzdG9wIG9mZnNldD0nMCUnIHN0b3AtY29sb3I9JyNlOTQ1NjAnIHN0b3Atb3BhY2l0eT0nMC4xNScvPgogICAgICA8c3RvcCBvZmZzZXQ9JzEwMCUnIHN0b3AtY29sb3I9JyMxYTFhMmUnLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSczMDAnIGhlaWdodD0nNDAwJyBmaWxsPSd1cmwoI2cpJyByeD0nMjAnLz4KICA8cmVjdCB4PSc4JyB5PSc4JyB3aWR0aD0nMjg0JyBoZWlnaHQ9JzM4NCcgZmlsbD0nbm9uZScgc3Ryb2tlPScjZTk0NTYwJyBzdHJva2Utd2lkdGg9JzInIHJ4PScxNicgb3BhY2l0eT0nMC42Jy8+CiAgPHRleHQgeD0nMTUwJyB5PScxNjAnIGZvbnQtc2l6ZT0nODAnIHRleHQtYW5jaG9yPSdtaWRkbGUnIGRvbWluYW50LWJhc2VsaW5lPSdtaWRkbGUnPvCfkYE8L3RleHQ+CiAgPHRleHQgeD0nMTUwJyB5PScyNzAnIGZvbnQtZmFtaWx5PSdBcmlhbCBCbGFjayxzYW5zLXNlcmlmJyBmb250LXNpemU9JzIyJyBmb250LXdlaWdodD0nOTAwJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBmaWxsPScjZTk0NTYwJyBsZXR0ZXItc3BhY2luZz0nMyc+SU1QT1NUT1I8L3RleHQ+CiAgPHRleHQgeD0nMTUwJyB5PSczMTAnIGZvbnQtZmFtaWx5PSdBcmlhbCxzYW5zLXNlcmlmJyBmb250LXNpemU9JzExJyB0ZXh0LWFuY2hvcj0nbWlkZGxlJyBmaWxsPSdyZ2JhKDI1NSwyNTUsMjU1LDAuMzUpJyBsZXR0ZXItc3BhY2luZz0nNCc+RUNPR0VPPC90ZXh0Pgo8L3N2Zz4='
+];
+
+    // --- Estado local ---
+    let myId = sessionStorage.getItem('myId');
+    if (!myId) { myId = 'p' + Date.now() + Math.random().toString(36).slice(2,5); sessionStorage.setItem('myId', myId); }
+
+    let isHost = false;
+    let currentRound = null;   // número de ronda que tenemos procesada
+    let cardFlipped = false;   // si ya volteamos la carta esta ronda
+    let votedNewGame = false;
+    let totalPlayers = 0;
+    let launchGuard = false;   // evita doble launchNewRound
+    let cardAssigned = false;
+
+    // --- Arranque ---
+    async function init() {
+      const roomRef = ref(db, ROOM);
+      const snap = await get(roomRef);
+      let room = snap.val();
+
+      // Sala expirada o vacía → crear nueva
+      if (!room || (!room.started && Date.now() - (room.createdAt || 0) > 7200000)) {
+        room = null;
+      }
+
+      if (!room) {
+        isHost = true;
+        await set(roomRef, {
+          hostId: myId, started: false, createdAt: Date.now(),
+          players: { [myId]: { joinedAt: Date.now(), num: 1 } }
+        });
+      } else {
+        isHost = (room.hostId === myId);
+        if (!room.started) {
+          // Sala en espera: registrarse como jugador si no estamos
+          if (!room.players || !room.players[myId]) {
+            const n = Object.keys(room.players || {}).length + 1;
+            await update(ref(db, ROOM + '/players/' + myId), { joinedAt: Date.now(), num: n });
+          }
+        }
+        // Si started, NO hacemos return: el onValue se encarga de todo
+      }
+
+      // ÚNICO listener para todo
+      onValue(roomRef, (snap) => {
+        const data = snap.val();
+        if (!data) { location.reload(); return; }
+        totalPlayers = Object.keys(data.players || {}).length;
+        isHost = (data.hostId === myId);
+
+        if (!data.started) {
+          // --- SALA DE ESPERA ---
+          resetCardUI();
+          currentRound = null;
+          cardFlipped = false;
+          votedNewGame = false;
+          launchGuard = false;
+          sessionStorage.removeItem('cardState');
+          renderPlayers(data);
+          showWaitScreen();
+
+        } else {
+          // --- JUEGO EN CURSO ---
+          hideWaitScreens();
+          const incomingRound = data.round || 1;
+
+          if (incomingRound !== currentRound) {
+            // Nueva ronda detectada → resetear UI y asignar carta
+            currentRound = incomingRound;
+            cardFlipped = false;
+            votedNewGame = false;
+            launchGuard = false;
+            sessionStorage.removeItem('cardState');
+            resetCardUI();
+            assignCard(data);
+
+          } else {
+            // Misma ronda → por si acaba de cargar la página (reload/volver de ecogeo)
+            // Solo asignar si la imagen no está puesta todavía
+            const img = document.getElementById('cardImage');
+            if (!img.src || img.src === window.location.href) {
+              assignCard(data);
+            }
+          }
+
+          // Actualizar contador de votos
+          const votes = Object.keys(data.newGameVotes || {}).length;
+          const rcEl = document.getElementById('readyCount');
+          if (rcEl.classList.contains('show')) {
+            rcEl.textContent = votes + ' / ' + totalPlayers + ' LISTOS';
+          }
+
+          // Todos votaron → host lanza nueva ronda
+          if (votes >= totalPlayers && totalPlayers > 0 && isHost && !launchGuard) {
+            launchGuard = true;
+            launchNewRound();
+          }
+        }
+      });
+    }
+
+    function assignCard(room) {
+      const assignments = room.assignments || {};
+      const role = assignments[myId] || 'civil';
+      const cardIdx = role === 'impostor' ? 9 : (room.civilCard ?? 0);
+
+      document.getElementById('cardImage').src = CARDS[cardIdx];
+      document.getElementById('roleLabel').textContent = role === 'impostor' ? '⚠️ ERES EL IMPOSTOR' : '✅ ERES CIVIL';
+      document.getElementById('roleLabel').className = 'role-label ' + role;
+      cardAssigned = true;
+
+      // ¿Volvieron de ecogeo esta misma ronda?
+      try {
+        const saved = JSON.parse(sessionStorage.getItem('cardState') || 'null');
+        if (saved && saved.round === currentRound) {
+          cardFlipped = true;
+          const inner = document.getElementById('cardInner');
+          inner.style.transition = 'none';
+          inner.classList.add('flipped');
+          requestAnimationFrame(() => { inner.style.transition = ''; });
+          document.getElementById('roleLabel').classList.add('show');
+          document.getElementById('cardHint').classList.add('show');
+          document.getElementById('cardHint').textContent = 'Toca para volver a ECOGEO';
+          showNewGameBtn();
+          return;
+        }
+      } catch(e) {}
+    }
+
+    // --- UI helpers ---
+    function showWaitScreen() {
+      if (isHost) {
+        document.getElementById('screen-wait').classList.add('active');
+        document.getElementById('screen-nonhost').classList.remove('active');
+      } else {
+        document.getElementById('screen-wait').classList.remove('active');
+        document.getElementById('screen-nonhost').classList.add('active');
+      }
+    }
+    function hideWaitScreens() {
+      document.getElementById('screen-wait').classList.remove('active');
+      document.getElementById('screen-nonhost').classList.remove('active');
+    }
+    function showNewGameBtn() {
+      if (!votedNewGame) {
+        const btn = document.getElementById('newGameBtn');
+        btn.classList.add('show');
+        btn.disabled = false;
+        btn.textContent = '🔄 NUEVA PARTIDA';
+      }
+      document.getElementById('readyCount').classList.add('show');
+    }
+    function resetCardUI() {
+      cardAssigned = false;
+      document.getElementById('cardInner').classList.remove('flipped');
+      document.getElementById('cardImage').src = '';
+      document.getElementById('roleLabel').className = 'role-label';
+      document.getElementById('roleLabel').classList.remove('show');
+      document.getElementById('cardHint').classList.remove('show');
+      document.getElementById('cardHint').textContent = '';
+      const btn = document.getElementById('newGameBtn');
+      btn.classList.remove('show');
+      btn.disabled = false;
+      btn.textContent = '🔄 NUEVA PARTIDA';
+      document.getElementById('readyCount').classList.remove('show');
+      document.getElementById('readyCount').textContent = '';
+    }
+    function renderPlayers(room) {
+      const players = Object.values(room.players || {});
+      totalPlayers = players.length;
+      ['waitCount','waitCountNH'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = totalPlayers;
+      });
+      ['playersList','playersListNH'].forEach(id => {
+        const list = document.getElementById(id);
+        if (!list) return;
+        list.innerHTML = '';
+        players.sort((a,b) => a.joinedAt - b.joinedAt).forEach((p, i) => {
+          const chip = document.createElement('div');
+          chip.className = 'player-chip';
+          chip.innerHTML = '<span class="dot"></span>Jugador ' + (i+1) + (i===0?' 👑':'');
+          list.appendChild(chip);
+        });
+      });
+      const btn = document.getElementById('startBtn');
+      if (btn) btn.disabled = totalPlayers < 2;
+      const note = document.getElementById('minNote');
+      if (note) note.style.display = totalPlayers >= 2 ? 'none' : 'block';
+    }
+
+    // --- Acciones del usuario ---
+    window.handleCardTap = function() {
+      if (!cardAssigned) return; // carta no asignada todavía
+
+      if (cardFlipped) {
+        // Ya volteada → ir a ecogeo
+        window.location.href = 'https://www.ecogeo.es/';
+        return;
+      }
+      // Primer toque → voltear
+      cardFlipped = true;
+      const inner = document.getElementById('cardInner');
+      inner.classList.add('flipped');
+      setTimeout(() => {
+        document.getElementById('roleLabel').classList.add('show');
+        document.getElementById('cardHint').classList.add('show');
+        document.getElementById('cardHint').textContent = 'Toca para ir a ECOGEO';
+        showNewGameBtn();
+      }, 700);
+      try { sessionStorage.setItem('cardState', JSON.stringify({ round: currentRound })); } catch(e) {}
+    };
+
+    window.voteNewGame = async function() {
+      if (votedNewGame) return;
+      votedNewGame = true;
+      const btn = document.getElementById('newGameBtn');
+      btn.disabled = true;
+      btn.textContent = '✅ LISTO';
+      await update(ref(db, ROOM + '/newGameVotes'), { [myId]: true });
+      // El listener onValue se encarga del resto
+    };
+
+    async function launchNewRound() {
+      const snap = await get(ref(db, ROOM));
+      const room = snap.val();
+      const playerIds = Object.keys(room.players || {});
+      if (playerIds.length < 2) { launchGuard = false; return; }
+
+      const impostorId = playerIds[Math.floor(Math.random() * playerIds.length)];
+      const civilCard = Math.floor(Math.random() * 9);
+      const assignments = {};
+      playerIds.forEach(id => { assignments[id] = id === impostorId ? 'impostor' : 'civil'; });
+      const nextRound = (room.round || 0) + 1;
+
+      await update(ref(db, ROOM), { started: true, civilCard, assignments, newGameVotes: null, round: nextRound });
+    }
+
+    window.startGame = async function() {
+      const snap = await get(ref(db, ROOM));
+      const room = snap.val();
+      const playerIds = Object.keys(room.players || {});
+      if (playerIds.length < 2) return;
+
+      const impostorId = playerIds[Math.floor(Math.random() * playerIds.length)];
+      const civilCard = Math.floor(Math.random() * 9);
+      const assignments = {};
+      playerIds.forEach(id => { assignments[id] = id === impostorId ? 'impostor' : 'civil'; });
+
+      await update(ref(db, ROOM), { started: true, civilCard, assignments, newGameVotes: null, round: 1 });
+    };
+
+    window.resetGame = async function() {
+      sessionStorage.removeItem('cardState');
+      await set(ref(db, ROOM), {
+        hostId: myId, started: false, createdAt: Date.now(),
+        players: { [myId]: { joinedAt: Date.now(), num: 1 } }
+      });
+    };
+
+    init();
+  </script>
+</body>
+</html>
